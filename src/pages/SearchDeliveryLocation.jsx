@@ -6,6 +6,7 @@ import qs from 'query-string';
 import { fetchStates } from '../constants';
 import styled from 'styled-components';
 
+import MapView from '../components/MapView';
 import Spinner from '../components/Spinner';
 
 import { Grid, Box, Header, Paragraph } from 'grommet';
@@ -24,19 +25,20 @@ const Container = styled.div`
   justify-content: center;
 `;
 
-const MapView = styled.div`
+const MapContainer = styled.div`
   width: 100%;
+  margin-top: 12px;
   /* Add aspect ratio box to preserve height */
-  padding-bottom: 60%;
+  padding-bottom: 80%;
   position: relative;
   &>div {
     position: absolute;
-    left: 0; right: 0; top: 0; bottom: 0;
+    left: 0; right: 0; top: 0px; bottom: 0;
     display: flex;
-    align-items: center;
+    align-items: top;
     justify-content: center;
-    font-size: 4.2em;
   }
+  overflow: hidden;
   width: 720px;
   max-width: 100vw;
   flex-grow: 1;
@@ -133,21 +135,21 @@ export default ({ match, history }) => {
   const [fetchState, data, error] = useFetcher(
     deliveryLocationService.getAvailableLocations, 
     match.params.address,
-  );  
+  );
   const outlets = fetchState === fetchStates.success && data.outlets;
+  // Only use start point (of polygon)
+  const targetCoordinate = outlets && outlets.length > 0 ? outlets[0].coordinates[0][0] : null;
   return (
     <Container>
-      <MapView>
+      <Header level='2' size='large'> Showing Location </Header>
+      <MapContainer>
         <div>
           {fetchState === fetchStates.waiting && <Spinner />}
-          {fetchState === fetchStates.success && outlets.map((outlet) => (
-            <Paragraph>Outlet: {outlet.identifier}</Paragraph>
-          ))}
-          {fetchState === fetchStates.success && outlets.length === 0 && 
-            <Header>Unfortunately, we couldn't find an outlet near you!</Header>
+          {fetchState === fetchStates.success && outlets.length > 0 &&
+            <MapView markerPosition={{ lat: targetCoordinate[1], lng: targetCoordinate[0] }} coordinates={targetCoordinate[0]} />
           }
         </div>
-      </MapView>
+      </MapContainer>
       <div>
         <SearchForm initialValue={match.params.address} updateSearchFilter={(value) => history.replace(`/search-delivery-location/${value}`)} />
         {fetchState === fetchStates.success && <SearchResults outlets={outlets} />}
